@@ -1,42 +1,35 @@
 version: "3.7"
 
 services:
-    # Serviço da aplicação (PHP-FPM)
+    # image project
     app:
         build:
             context: .
             dockerfile: Dockerfile
+        ports:
+             - "5173:5173"
         restart: unless-stopped
         working_dir: /var/www/
         volumes:
             - ./:/var/www
-        ports:
-            - 80:8080
         depends_on:
             - redis
-            - db
         networks:
             - laravel
 
-    # Serviço do Nginx (expondo a porta 8080)
+    # nginx
     nginx:
         image: nginx:alpine
-        ports:
-            - "8087:8087"  # Porta 8080 exposta para o tráfego HTTP (Google Cloud)
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8080"]
-            interval: 10s
-            retries: 3
-            start_period: 30s
-            timeout: 5s
         restart: unless-stopped
+        ports:
+            - "8989:80"
         volumes:
-            - ./:/var/www  # Monta a aplicação Laravel no contêiner Nginx
-            - ./docker/nginx/:/etc/nginx/conf.d/  # Arquivo de configuração personalizado do Nginx
+            - ./:/var/www
+            - ./docker/nginx/:/etc/nginx/conf.d/
         networks:
             - laravel
 
-    # Banco de dados MySQL
+    # db mysql
     db:
         image: mysql:5.7.22
         restart: unless-stopped
@@ -48,16 +41,16 @@ services:
         volumes:
             - ./.docker/mysql/dbdata:/var/lib/mysql
         ports:
-            - "3388:3306"  # Porta do MySQL (exposta para uso local)
+            - "3388:3306"
         networks:
             - laravel
 
-    # phpMyAdmin para gerenciamento do banco de dados MySQL
+    # PHPMyAdmin
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
         restart: unless-stopped
         ports:
-            - "8087:8087"  # Porta 8087 exposta para phpMyAdmin
+            - "8080:80"
         environment:
             PMA_HOST: db
             PMA_PORT: 3306
@@ -65,7 +58,7 @@ services:
         networks:
             - laravel
 
-    # Redis
+    # redis
     redis:
         image: redis:latest
         networks:
