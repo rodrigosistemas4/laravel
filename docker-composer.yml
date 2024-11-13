@@ -1,0 +1,76 @@
+version: "3.7"
+
+services:
+    # Serviço da aplicação (PHP-FPM)
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        ports:
+            - 80:8080
+        depends_on:
+            - redis
+            - db
+        networks:
+            - laravel
+
+    # Serviço do Nginx (expondo a porta 8080)
+    nginx:
+        image: nginx:alpine
+        ports:
+            - "8087:8087"  # Porta 8080 exposta para o tráfego HTTP (Google Cloud)
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080"]
+            interval: 10s
+            retries: 3
+            start_period: 30s
+            timeout: 5s
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www  # Monta a aplicação Laravel no contêiner Nginx
+            - ./docker/nginx/:/etc/nginx/conf.d/  # Arquivo de configuração personalizado do Nginx
+        networks:
+            - laravel
+
+    # Banco de dados MySQL
+    db:
+        image: mysql:5.7.22
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+            MYSQL_PASSWORD: ${DB_PASSWORD:-userpass}
+            MYSQL_USER: ${DB_USERNAME:-username}
+        volumes:
+            - ./.docker/mysql/dbdata:/var/lib/mysql
+        ports:
+            - "3388:3306"  # Porta do MySQL (exposta para uso local)
+        networks:
+            - laravel
+
+    # phpMyAdmin para gerenciamento do banco de dados MySQL
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        restart: unless-stopped
+        ports:
+            - "8087:8087"  # Porta 8087 exposta para phpMyAdmin
+        environment:
+            PMA_HOST: db
+            PMA_PORT: 3306
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-userpass}
+        networks:
+            - laravel
+
+    # Redis
+    redis:
+        image: redis:latest
+        networks:
+            - laravel
+
+networks:
+    laravel:
+        driver: bridge
