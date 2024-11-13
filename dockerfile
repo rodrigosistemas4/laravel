@@ -42,14 +42,11 @@ RUN pecl install -o -f redis \
 
 # Set working directory
 WORKDIR /var/www
-
-ENV HOST 0.0.0.0
+EXPOSE 80
+EXPOSE 8001
 
 # Copy custom configurations PHP
 COPY docker/php/custom.ini /usr/local/etc/php/conf.d/custom.ini
-
-# Expor a porta 8080 para o Google Cloud Run
-#novo
-EXPOSE 8080 
+ENV HOST 0.0.0.0
 
 USER $user
